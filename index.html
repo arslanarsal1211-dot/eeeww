@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>StoryMagic Advanced — Animated Kids Studio</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  .gradient-text { background: linear-gradient(90deg, #6366f1, #a855f7); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hidden { display: none !important; }
+  .modal-open { overflow: hidden; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-fade { animation: fadeIn 0.35s ease-out; }
+  @keyframes pop { 0% { transform: scale(0.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  .animate-pop { animation: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  input[type="range"] { accent-color: #6366f1; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #0f172a; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+  .file-input { width: 100%; font-size: 0.8rem; color: #64748b; }
+  .file-input::file-selector-button { margin-right: 0.75rem; padding: 0.5rem 1rem; border-radius: 0.75rem; border: 0; background: #eef2ff; color: #4338ca; font-weight: 700; cursor: pointer; }
+
+  /* ============================================================
+     STAGE / CHARACTER ANIMATIONS
+     ============================================================ */
+  .stage {
+    position: relative; overflow: hidden; border-radius: 1.5rem;
+    background: #000;
+    isolation: isolate;
+  }
+  .stage-camera {
+    position: absolute; inset: 0; z-index: 1;
+    transform-origin: center center;
+    will-change: transform;
+  }
+  .stage-bg {
+    position: absolute; inset: 0; z-index: 0;
+  }
+  .stage-bg-emoji {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 14rem; opacity: 0.22; pointer-events: none;
+  }
+  .stage-layer {
+    position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  }
+  .stage-char {
+    position: absolute; bottom: 8%; z-index: 2;
+    filter: drop-shadow(0 12px 18px rgba(0,0,0,0.5));
+    transform-origin: bottom center;
+    will-change: transform;
+  }
+  .stage-char img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .stage-narr {
+    position: absolute; bottom: 1rem; left: 1rem; right: 1rem; z-index: 5;
+    background: rgba(0,0,0,0.72); backdrop-filter: blur(8px);
+    padding: 0.75rem 1rem; border-radius: 1rem; color: white;
+    font-weight: 600; font-size: 0.9rem; line-height: 1.4;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .speech-bubble {
+    position: absolute; z-index: 6;
+    background: white; color: #1e293b; font-weight: 700; font-size: 0.75rem;
+    padding: 0.4rem 0.7rem; border-radius: 1rem;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+    transform: translate(-50%, -100%); white-space: nowrap;
+    animation: pop 0.3s ease-out;
+  }
+  .speech-bubble::after {
+    content: ''; position: absolute; left: 50%; top: 100%;
+    transform: translateX(-50%);
+    border: 6px solid transparent; border-top-color: white;
+  }
+
+  /* Character movement keyframes */
+  @keyframes char-idle { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-8px) rotate(-1deg); } }
+  @keyframes char-walk-right { 0% { transform: translateX(-8%) scaleX(1); } 100% { transform: translateX(90%) scaleX(1); } }
+  @keyframes char-walk-left { 0% { transform: translateX(90%) scaleX(-1); } 100% { transform: translateX(-8%) scaleX(-1); } }
+  @keyframes char-jump { 0%,100% { transform: translateY(0) scaleY(1); } 20% { transform: translateY(0) scaleY(0.85); } 45% { transform: translateY(-55px) scaleY(1.05) scaleX(0.95); } 70% { transform: translateY(0) scaleY(0.9); } }
+  @keyframes char-dance { 0%,100% { transform: rotate(-10deg) translateY(0); } 25% { transform: rotate(0deg) translateY(-10px); } 50% { transform: rotate(10deg) translateY(0); } 75% { transform: rotate(0deg) translateY(-10px); } }
+  @keyframes char-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  @keyframes char-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+  @keyframes char-wave { 0%,100% { transform: rotate(-4deg) translateY(0); } 25% { transform: rotate(6deg) translateY(-4px); } 50% { transform: rotate(-4deg) translateY(-8px); } 75% { transform: rotate(6deg) translateY(-4px); } }
+  @keyframes char-fly { 0% { transform: translateY(40px) scale(0.9); opacity: 0.5; } 50% { transform: translateY(-30px) scale(1); opacity: 1; } 100% { transform: translateY(40px) scale(0.9); opacity: 0.5; } }
+  @keyframes char-run { 0% { transform: translateX(-10%) rotate(-6deg); } 50% { transform: translateX(45%) rotate(6deg); } 100% { transform: translateX(95%) rotate(-6deg); } }
+  @keyframes char-hop { 0%,100% { transform: translateY(0); } 25% { transform: translateY(-18px); } 50% { transform: translateY(0); } 75% { transform: translateY(-18px); } }
+
+  .char-idle { animation: char-idle 2.2s ease-in-out infinite; }
+  .char-walk-right { animation: char-walk-right 4s linear infinite; }
+  .char-walk-left { animation: char-walk-left 4s linear infinite; }
+  .char-jump { animation: char-jump 1.6s ease-in-out infinite; }
+  .char-dance { animation: char-dance 1.2s ease-in-out infinite; }
+  .char-spin { animation: char-spin 2s linear infinite; }
+  .char-float { animation: char-float 3s ease-in-out infinite; }
+  .char-wave { animation: char-wave 1.8s ease-in-out infinite; }
+  .char-fly { animation: char-fly 4s ease-in-out infinite; }
+  .char-run { animation: char-run 2s linear infinite; }
+  .char-hop { animation: char-hop 1s ease-in-out infinite; }
+
+  /* Scene transitions */
+  @keyframes scene-in-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes scene-in-slide { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes scene-in-zoom { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes scene-in-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes scene-in-sparkle { 0% { opacity: 0; filter: brightness(3) blur(20px); } 60% { opacity: 1; filter: brightness(1.6) blur(4px); } 100% { opacity: 1; filter: brightness(1) blur(0); } }
+  .scene-enter-fade { animation: scene-in-fade 0.7s ease-out both; }
+  .scene-enter-slide { animation: scene-in-slide 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .scene-enter-zoom { animation: scene-in-zoom 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  .scene-enter-wipe { animation: scene-in-wipe 0.8s ease-out both; }
+  .scene-enter-sparkle { animation: scene-in-sparkle 1s ease-out both; }
+
+  /* Camera motions (Ken Burns) */
+  @keyframes cam-static { 0%,100% { transform: scale(1.02); } }
+  @keyframes cam-pan-left { 0% { transform: scale(1.18) translateX(6%); } 100% { transform: scale(1.18) translateX(-6%); } }
+  @keyframes cam-pan-right { 0% { transform: scale(1.18) translateX(-6%); } 100% { transform: scale(1.18) translateX(6%); } }
+  @keyframes cam-zoom-in { 0% { transform: scale(1); } 100% { transform: scale(1.28); } }
+  @keyframes cam-zoom-out { 0% { transform: scale(1.3); } 100% { transform: scale(1); } }
+  @keyframes cam-tilt-up { 0% { transform: scale(1.15) translateY(6%); } 100% { transform: scale(1.15) translateY(-6%); } }
+  .cam-static { animation: cam-static 12s ease-in-out infinite; }
+  .cam-pan-left { animation: cam-pan-left 12s ease-in-out infinite alternate; }
+  .cam-pan-right { animation: cam-pan-right 12s ease-in-out infinite alternate; }
+  .cam-zoom-in { animation: cam-zoom-in 10s ease-in-out infinite alternate; }
+  .cam-zoom-out { animation: cam-zoom-out 10s ease-in-out infinite alternate; }
+  .cam-tilt-up { animation: cam-tilt-up 12s ease-in-out infinite alternate; }
+
+  /* Particle system */
+  .particles { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+  .particle { position: absolute; animation-timing-function: linear; animation-iteration-count: infinite; }
+
+  @keyframes p-sparkle { 0%,100% { opacity: 0; transform: scale(0.3) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(180deg); } }
+  @keyframes p-snow { 0% { transform: translateY(-10%) translateX(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(110%) translateX(30px); opacity: 0.8; } }
+  @keyframes p-rain { 0% { transform: translateY(-20%) translateX(0); opacity: 0.7; } 100% { transform: translateY(120%) translateX(-10px); opacity: 0.7; } }
+  @keyframes p-bubble { 0% { transform: translateY(110%) scale(0.6); opacity: 0; } 20% { opacity: 0.85; } 100% { transform: translateY(-20%) scale(1.2); opacity: 0; } }
+  @keyframes p-star { 0%,100% { opacity: 0.2; transform: scale(0.6); } 50% { opacity: 1; transform: scale(1.2); } }
+  @keyframes p-firefly { 0%,100% { transform: translate(0,0); opacity: 0; } 25% { opacity: 1; } 50% { transform: translate(30px, -25px); opacity: 0.9; } 75% { opacity: 1; } }
+
+  /* Player timeline */
+  .timeline {
+    position: relative; height: 40px; background: #1e293b;
+    border-radius: 12px; cursor: pointer; overflow: hidden;
+    border: 1px solid #334155;
+  }
+  .timeline-seg {
+    position: absolute; top: 4px; bottom: 4px; border-radius: 6px;
+    background: linear-gradient(180deg, #6366f1, #4f46e5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 700; color: white; overflow: hidden;
+    white-space: nowrap; padding: 0 6px;
+    transition: filter 0.2s;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .timeline-seg:hover { filter: brightness(1.2); }
+  .timeline-seg.active { background: linear-gradient(180deg, #fbbf24, #f59e0b); color: #1e293b; box-shadow: 0 0 12px rgba(251,191,36,0.6); }
+  .timeline-playhead {
+    position: absolute; top: 0; bottom: 0; width: 3px; background: #fff;
+    box-shadow: 0 0 12px #fff, 0 0 24px rgba(255,255,255,0.6);
+    border-radius: 2px; z-index: 5; pointer-events: none;
+  }
+
+  /* Transition flash for player */
+  .transition-flash {
+    position: absolute; inset: 0; z-index: 20; pointer-events: none;
+    background: white; opacity: 0;
+    animation: flash 0.5s ease-out;
+  }
+  @keyframes flash { 0% { opacity: 0; } 40% { opacity: 0.85; } 100% { opacity: 0; } }
+
+  /* Sticky tab marker */
+  .tab-active { background: #1e293b; color: #fff !important; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+<!-- HEADER -->
+<header class="bg-slate-900/80 backdrop-blur-lg border-b border-slate-800 sticky top-0 z-30">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between flex-wrap gap-4">
+    <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('home')">
+      <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-2.5 rounded-xl shadow-lg">
+        <i data-lucide="book-open" class="w-6 h-6 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-black tracking-tight">Story<span class="gradient-text">Magic</span></h1>
+        <p class="text-xs text-slate-500 font-medium -mt-0.5">Animated Kids Studio</p>
+      </div>
+    </div>
+    <nav class="flex items-center gap-2 font-bold text-slate-400">
+      <button onclick="switchTab('home')" id="tab-home" class="px-4 py-2 rounded-xl hover:text-white hover:bg-slate-800 transition">Home</button>
+      <button onclick="switchTab('studio')" id="tab-studio" class="px-4 py-2 rounded-xl hover:text-white hover:bg-slate-800 transition">Studio</button>
+      <button onclick="switchTab('library')" id="tab-library" class="px-4 py-2 rounded-xl hover:text-white hover:bg-slate-800 transition">Library</button>
+    </nav>
+    <div class="flex items-center gap-3">
+      <button id="master-mute" onclick="toggleMasterMute()" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-full border border-slate-700 transition" title="Mute / Unmute">
+        <i data-lucide="volume-2" class="w-5 h-5 text-slate-300"></i>
+      </button>
+      <button onclick="openCreator()" class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl font-black text-sm transition shadow-lg shadow-indigo-900/40">
+        <i data-lucide="wand-2" class="w-4 h-4"></i> New Project
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- HOME -->
+<main id="view-home" class="max-w-7xl mx-auto px-6 py-10 animate-fade">
+  <section class="mb-16">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-3xl font-black">Your Movies</h2>
+      <button onclick="switchTab('library')" class="text-indigo-400 font-bold flex items-center gap-1 hover:text-indigo-300 transition">
+        See all <i data-lucide="chevron-right" class="w-5 h-5"></i>
+      </button>
+    </div>
+    <div id="home-featured"></div>
+    <div id="home-movies" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-6"></div>
+  </section>
+  <section class="mb-16">
+    <h2 class="text-3xl font-black mb-6">Explore Categories</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" id="category-grid"></div>
+  </section>
+</main>
+
+<!-- STUDIO -->
+<main id="view-studio" class="hidden max-w-7xl mx-auto px-6 py-8 animate-fade">
+  <div id="studio-empty" class="text-center py-32">
+    <div class="bg-indigo-900/30 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8">
+      <i data-lucide="film" class="w-12 h-12 text-indigo-400"></i>
+    </div>
+    <h2 class="text-3xl font-black mb-4">No project open</h2>
+    <p class="text-slate-400 mb-8 max-w-md mx-auto font-medium">Create a new project or open one from your library.</p>
+    <button onclick="openCreator()" class="bg-indigo-600 text-white px-8 py-4 rounded-full font-black hover:bg-indigo-700 transition shadow-xl inline-flex items-center gap-2">
+      <i data-lucide="plus" class="w-5 h-5"></i> Create New Project
+    </button>
+  </div>
+
+  <div id="studio-workspace" class="hidden">
+    <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+      <div class="flex items-center gap-3">
+        <i data-lucide="film" class="w-7 h-7 text-indigo-400"></i>
+        <input id="project-name" value="Untitled" class="bg-transparent text-2xl font-black outline-none border-b-2 border-transparent focus:border-indigo-500 transition w-56" />
+        <span id="scene-count" class="text-xs font-bold text-slate-500 bg-slate-900 px-3 py-1.5 rounded-full">0 scenes</span>
+      </div>
+      <div class="flex items-center gap-3 flex-wrap">
+        <button onclick="saveProject()" class="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-sm transition">
+          <i data-lucide="save" class="w-4 h-4"></i> Save
+        </button>
+        <button onclick="playCurrentScene()" class="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold text-sm transition">
+          <i data-lucide="clapperboard" class="w-4 h-4"></i> Play Scene
+        </button>
+        <button onclick="openPreview()" class="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-sm transition">
+          <i data-lucide="play" class="w-4 h-4"></i> Preview All
+        </button>
+        <button onclick="renderMovie()" id="render-btn" class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl font-black text-sm transition shadow-lg shadow-indigo-900/40">
+          <i data-lucide="download" class="w-4 h-4"></i> Render
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- LEFT SIDEBAR -->
+      <aside class="lg:col-span-3 space-y-5">
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5">
+          <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Scene Backgrounds</h3>
+          <div class="grid grid-cols-2 gap-3" id="template-grid"></div>
+        </div>
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-500">Characters</h3>
+            <button onclick="openCharBuilder()" class="p-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <div id="char-grid" class="grid grid-cols-3 gap-2"></div>
+          <p class="text-xs text-slate-500 mt-3 text-center">Click a character, then click "Place in Scene"</p>
+        </div>
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5">
+          <h3 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Narrator Voice</h3>
+          <select id="narrator-voice" onchange="saveNarratorSettings()" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm font-bold mb-3 focus:border-indigo-500 outline-none"></select>
+          <label class="block text-xs font-bold text-slate-500 mb-1">Pitch: <span id="narrator-pitch-val">1.0</span></label>
+          <input id="narrator-pitch" type="range" min="0.5" max="2" step="0.1" value="1" oninput="document.getElementById('narrator-pitch-val').textContent=this.value; saveNarratorSettings();" class="w-full mb-2" />
+          <label class="block text-xs font-bold text-slate-500 mb-1">Speed: <span id="narrator-rate-val">0.9</span></label>
+          <input id="narrator-rate" type="range" min="0.5" max="1.5" step="0.1" value="0.9" oninput="document.getElementById('narrator-rate-val').textContent=this.value; saveNarratorSettings();" class="w-full mb-3" />
+          <button onclick="testNarrator()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
+            <i data-lucide="volume-2" class="w-4 h-4"></i> Test Voice
+          </button>
+        </div>
+      </aside>
+
+      <!-- CENTER INSPECTOR -->
+      <section class="lg:col-span-6 bg-slate-900 rounded-2xl border border-slate-800 p-6">
+        <div id="inspector-content"></div>
+      </section>
+
+      <!-- RIGHT STORYBOARD -->
+      <aside class="lg:col-span-3 bg-slate-900 rounded-2xl border border-slate-800 p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xs font-black uppercase tracking-widest text-slate-500">Storyboard</h3>
+          <button onclick="addScene(1)" class="p-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div class="space-y-3 max-h-[500px] overflow-y-auto pr-1" id="storyboard-list"></div>
+        <div class="mt-5 p-4 bg-slate-950 border border-slate-800 rounded-xl">
+          <p class="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Total Length</p>
+          <div class="flex items-end justify-between">
+            <span id="total-duration" class="text-3xl font-black text-indigo-400">0:00</span>
+            <span class="text-xs font-bold text-slate-500 mb-1">/ 30:00</span>
+          </div>
+          <div class="h-2 bg-slate-800 rounded-full mt-3 overflow-hidden">
+            <div id="duration-bar" class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all" style="width: 0%"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<!-- LIBRARY -->
+<main id="view-library" class="hidden max-w-7xl mx-auto px-6 py-10 animate-fade">
+  <div class="flex items-center justify-between mb-8 flex-wrap gap-4">
+    <h2 class="text-3xl font-black">Your Library</h2>
+    <button onclick="openCreator()" class="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-sm transition">
+      <i data-lucide="plus" class="w-4 h-4"></i> New Project
+    </button>
+  </div>
+  <div id="library-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"></div>
+</main>
+
+<!-- CREATOR MODAL -->
+<div id="creator-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-50 items-center justify-center p-4">
+  <div class="bg-white text-slate-900 rounded-3xl max-w-lg w-full p-8 relative shadow-2xl animate-fade max-h-[90vh] overflow-y-auto">
+    <button onclick="closeCreator()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-800 transition bg-slate-100 hover:bg-slate-200 p-2 rounded-full">
+      <i data-lucide="x" class="w-5 h-5"></i>
+    </button>
+    <div class="flex items-center gap-4 mb-6">
+      <div class="bg-purple-100 p-3 rounded-2xl"><i data-lucide="wand-2" class="w-6 h-6 text-purple-600"></i></div>
+      <div><h2 class="text-2xl font-black">New Story Project</h2><p class="text-slate-500 text-sm font-medium">Design your cartoon</p></div>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-bold text-slate-700 mb-1.5">Project Title</label>
+        <input id="new-title" type="text" value="My Magical Story" class="w-full p-3.5 border-2 border-slate-100 rounded-2xl bg-slate-50 focus:border-purple-400 outline-none font-medium" />
+      </div>
+      <div>
+        <label class="block text-sm font-bold text-slate-700 mb-1.5">Theme</label>
+        <select id="new-theme" class="w-full p-3.5 border-2 border-slate-100 rounded-2xl bg-slate-50 focus:border-purple-400 outline-none font-medium">
+          <option>Magical Quest</option><option>Animal Adventure</option><option>Bedtime Fairy Tale</option><option>Everyday Little Wins</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-bold text-slate-700 mb-1.5">Upload Real Video (optional)</label>
+        <input type="file" id="new-video" accept="video/mp4,video/webm" class="file-input" />
+      </div>
+      <button onclick="createProject()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black py-4 rounded-2xl transition shadow-xl mt-2 flex items-center justify-center gap-3">
+        <i data-lucide="sparkles" class="w-5 h-5"></i> Create Project
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CHARACTER BUILDER MODAL -->
+<div id="char-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-50 items-center justify-center p-4">
+  <div class="bg-white text-slate-900 rounded-3xl max-w-3xl w-full p-8 relative shadow-2xl animate-fade max-h-[90vh] overflow-y-auto">
+    <button onclick="closeCharBuilder()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-800 transition bg-slate-100 hover:bg-slate-200 p-2 rounded-full">
+      <i data-lucide="x" class="w-5 h-5"></i>
+    </button>
+    <h2 class="text-2xl font-black mb-1">Create Character</h2>
+    <p class="text-slate-500 text-sm mb-6">Design a face & body, upload your own picture, and set their voice.</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <div class="bg-slate-100 rounded-3xl p-6 flex items-center justify-center" style="aspect-ratio:1/1;">
+          <img id="char-preview" src="" class="w-full h-full object-contain char-idle" />
+        </div>
+        <div class="mt-4">
+          <label class="block text-sm font-bold text-slate-700 mb-1.5">Upload Your Own Picture</label>
+          <input type="file" id="char-upload" accept="image/*" onchange="handleCharUpload(event)" class="file-input" />
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-1.5">Name</label>
+          <input id="char-name" type="text" value="Ollie" oninput="updateCharPreview()" class="w-full p-3 border-2 border-slate-100 rounded-2xl bg-slate-50 focus:border-purple-400 outline-none font-medium" />
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-1.5">Face Style</label>
+          <select id="char-face" onchange="updateCharPreview()" class="w-full p-3 border-2 border-slate-100 rounded-2xl bg-slate-50 focus:border-purple-400 outline-none font-medium">
+            <option value="adventurer">Illustrated - Adventurer</option>
+            <option value="avataaars">Cartoon - Classic</option>
+            <option value="big-ears">Cartoon - Big Ears</option>
+            <option value="bottts">Robot</option>
+            <option value="fun-emoji">Emoji Face</option>
+            <option value="lorelei">Storybook - Lorelei</option>
+            <option value="micah">Modern - Micah</option>
+            <option value="miniavs">Tiny - Mini</option>
+            <option value="open-peeps">Sketch - Peeps</option>
+            <option value="personas">Flat - Personas</option>
+            <option value="pixel-art">Pixel Art</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Skin</label>
+            <input id="char-skin" type="color" value="#f5cba7" onchange="updateCharPreview()" class="w-full h-10 rounded-xl border-2 border-slate-100 cursor-pointer" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Clothes</label>
+            <input id="char-clothes" type="color" value="#6366f1" onchange="updateCharPreview()" class="w-full h-10 rounded-xl border-2 border-slate-100 cursor-pointer" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Bg</label>
+            <input id="char-bg" type="color" value="#e0e7ff" onchange="updateCharPreview()" class="w-full h-10 rounded-xl border-2 border-slate-100 cursor-pointer" />
+          </div>
+        </div>
+
+        <div class="border-t border-slate-200 pt-4 mt-2">
+          <p class="text-xs font-black uppercase tracking-widest text-indigo-600 mb-3 flex items-center gap-1"><i data-lucide="volume-2" class="w-3 h-3"></i> Voice</p>
+          <select id="char-voice" class="w-full p-3 border-2 border-slate-100 rounded-2xl bg-slate-50 focus:border-purple-400 outline-none font-medium text-sm mb-3"></select>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Pitch: <span id="char-pitch-val">1.1</span></label>
+              <input id="char-pitch" type="range" min="0.5" max="2" step="0.1" value="1.1" oninput="document.getElementById('char-pitch-val').textContent=this.value" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Speed: <span id="char-rate-val">1.0</span></label>
+              <input id="char-rate" type="range" min="0.5" max="1.5" step="0.1" value="1" oninput="document.getElementById('char-rate-val').textContent=this.value" class="w-full" />
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="block text-sm font-bold text-slate-700 mb-1.5">Catchphrase</label>
+            <input id="char-line" type="text" placeholder="e.g., Hello friend!" class="w-full p-3 border-2 border-slate-100 rounded-2xl bg-slate-50 focus:border-purple-400 outline-none font-medium text-sm" />
+          </div>
+          <button onclick="testCharVoice()" class="w-full mt-3 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
+            <i data-lucide="volume-2" class="w-4 h-4"></i> Test Voice
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <button onclick="saveCharacter()" class="w-full mt-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black py-4 rounded-2xl transition shadow-xl flex items-center justify-center gap-3">
+      <i data-lucide="user-plus" class="w-5 h-5"></i> Add Character to Project
+    </button>
+  </div>
+</div>
+
+<!-- RENDER OVERLAY -->
+<div id="render-overlay" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 items-center justify-center">
+  <div class="text-center max-w-md w-full px-6">
+    <i data-lucide="loader-2" class="w-16 h-16 text-indigo-500 animate-spin mx-auto mb-6"></i>
+    <h2 class="text-2xl font-black mb-2">Rendering your movie...</h2>
+    <p class="text-slate-400 mb-8 font-medium" id="render-subtitle">Preparing scenes...</p>
+    <div class="h-3 bg-slate-800 rounded-full overflow-hidden">
+      <div id="render-bar" class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all" style="width: 0%"></div>
+    </div>
+    <p id="render-percent" class="text-4xl font-black mt-4 text-indigo-400">0%</p>
+  </div>
+</div>
+
+<!-- PLAYER MODAL -->
+<div id="player-modal" class="hidden fixed inset-0 bg-black/95 z-50 items-center justify-center p-4">
+  <button onclick="closePlayer()" class="absolute top-6 right-6 p-3 bg-slate-900 hover:bg-slate-800 rounded-full transition z-10">
+    <i data-lucide="x" class="w-6 h-6"></i>
+  </button>
+  <div class="max-w-5xl w-full">
+    <div class="flex items-center justify-center gap-2 mb-4">
+      <button id="mode-btn-stage" onclick="setPlayerMode('stage')" class="px-4 py-2 rounded-xl font-bold text-sm transition bg-indigo-600 text-white">Animated Stage</button>
+      <button id="mode-btn-video" onclick="setPlayerMode('video')" class="px-4 py-2 rounded-xl font-bold text-sm transition bg-slate-800 text-slate-300 hover:bg-slate-700">Real Video</button>
+    </div>
+
+    <div id="player-stage-wrap">
+      <div id="player-stage" class="stage aspect-video w-full border-4 border-slate-800"></div>
+    </div>
+
+    <div id="player-video-wrap" class="hidden">
+      <video id="player-video" controls playsinline class="w-full rounded-3xl border-4 border-slate-800 bg-black" style="aspect-ratio:16/9;">
+        <source src="" type="video/mp4" />
+      </video>
+      <p id="video-warning" class="hidden text-amber-400 text-sm font-bold text-center mt-3">⚠ No video uploaded — showing animated stage instead.</p>
+    </div>
+
+    <div class="mt-5 flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <h2 id="player-title" class="text-2xl font-black"></h2>
+        <p id="player-desc" class="text-slate-400 font-medium text-sm"></p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="toggleMasterMute()" id="player-mute" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-full transition">
+          <i data-lucide="volume-2" class="w-5 h-5"></i>
+        </button>
+        <button onclick="playerPrev()" id="player-prev" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-full transition disabled:opacity-30">
+          <i data-lucide="chevron-left" class="w-5 h-5"></i>
+        </button>
+        <button onclick="togglePlayerPlay()" id="player-play" class="p-4 bg-indigo-600 hover:bg-indigo-500 rounded-full transition">
+          <i data-lucide="play" class="w-6 h-6"></i>
+        </button>
+        <button onclick="playerNext()" id="player-next" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-full transition disabled:opacity-30">
+          <i data-lucide="chevron-right" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="mt-4">
+      <div class="flex items-center justify-between mb-2">
+        <p id="player-time" class="text-xs font-black text-slate-400">0:00 / 0:00</p>
+        <p id="player-scene-label" class="text-xs font-black text-slate-400"></p>
+      </div>
+      <div id="player-timeline" class="timeline" onclick="timelineClick(event)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PREVIEW MODAL -->
+<div id="preview-modal" class="hidden fixed inset-0 bg-black/95 z-50 items-center justify-center p-6">
+  <button onclick="closePreview()" class="absolute top-6 right-6 p-3 bg-slate-900 hover:bg-slate-800 rounded-full transition z-10">
+    <i data-lucide="x" class="w-6 h-6"></i>
+  </button>
+  <div class="max-w-4xl w-full">
+    <div id="preview-stage" class="stage aspect-video w-full border-4 border-slate-800"></div>
+    <div class="text-center mt-6">
+      <p id="preview-counter" class="text-xs font-black uppercase tracking-widest text-slate-500 mb-2"></p>
+      <h2 id="preview-title" class="text-3xl font-black mb-2"></h2>
+      <p id="preview-narration" class="text-slate-400 italic max-w-2xl mx-auto"></p>
+      <div class="flex items-center justify-center gap-4 mt-6">
+        <button onclick="playPreviewScene()" class="p-4 bg-purple-600 hover:bg-purple-500 rounded-full transition" title="Play this scene">
+          <i data-lucide="play" class="w-6 h-6"></i>
+        </button>
+        <button onclick="speakCurrentPreview()" class="p-4 bg-slate-800 hover:bg-slate-700 rounded-full transition" title="Speak scene">
+          <i data-lucide="volume-2" class="w-6 h-6"></i>
+        </button>
+        <button onclick="prevPreview()" id="preview-prev" class="p-4 bg-slate-900 hover:bg-slate-800 rounded-full transition disabled:opacity-30">
+          <i data-lucide="chevron-left" class="w-6 h-6"></i>
+        </button>
+        <button onclick="nextPreview()" id="preview-next" class="p-4 bg-indigo-600 hover:bg-indigo-500 rounded-full transition disabled:opacity-30">
+          <i data-lucide="chevron-right" class="w-6 h-6"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const SCENE_TEMPLATES = [
+  { id: 1, name: 'Castle at Night', bg: 'linear-gradient(135deg, #1e3a8a 0%, #4c1d95 100%)', emoji: '🏰', night: true },
+  { id: 2, name: 'Forest Friends', bg: 'linear-gradient(135deg, #065f46 0%, #84cc16 100%)', emoji: '🌲' },
+  { id: 3, name: 'Magical Tree', bg: 'linear-gradient(135deg, #78350f 0%, #f59e0b 100%)', emoji: '🌳' },
+  { id: 4, name: 'Cozy Room', bg: 'linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%)', emoji: '🛋️' },
+  { id: 5, name: 'Starry Sky', bg: 'linear-gradient(135deg, #0f172a 0%, #6366f1 100%)', emoji: '🌙', night: true },
+  { id: 6, name: 'Ocean Deep', bg: 'linear-gradient(135deg, #0c4a6e 0%, #06b6d4 100%)', emoji: '🌊' },
+];
+
+const CATEGORIES = [
+  { id: 1, title: 'Bedtime Fairy Tales', color: 'from-blue-900/60 to-indigo-900/60', border: 'border-blue-700/40', icon: '🏰', desc: 'Magical stories to end the day.' },
+  { id: 2, title: 'Animal Adventures', color: 'from-green-900/60 to-emerald-900/60', border: 'border-green-700/40', icon: '🦊', desc: 'Fun journeys with furry friends.' },
+  { id: 3, title: 'Magical Quests', color: 'from-purple-900/60 to-fuchsia-900/60', border: 'border-purple-700/40', icon: '🌳', desc: 'Epic journeys into unknown lands.' },
+  { id: 4, title: 'Everyday Little Wins', color: 'from-yellow-900/60 to-amber-900/60', border: 'border-yellow-700/40', icon: '🐱', desc: 'Learning life lessons with joy.' },
+];
+
+const ACTIONS = [
+  { id: 'idle', label: '✨ Idle (float)' },
+  { id: 'walk-right', label: '➡️ Walk Right' },
+  { id: 'walk-left', label: '⬅️ Walk Left' },
+  { id: 'run', label: '🏃 Run Across' },
+  { id: 'jump', label: '⬆️ Jump' },
+  { id: 'hop', label: '🐰 Hop' },
+  { id: 'dance', label: '💃 Dance' },
+  { id: 'spin', label: '🌀 Spin' },
+  { id: 'wave', label: '👋 Wave' },
+  { id: 'fly', label: '🕊️ Fly (hover)' },
+];
+
+const CAMERAS = [
+  { id: 'static', label: 'Static' },
+  { id: 'pan-left', label: 'Camera Pan Left' },
+  { id: 'pan-right', label: 'Camera Pan Right' },
+  { id: 'zoom-in', label: 'Zoom In' },
+  { id: 'zoom-out', label: 'Zoom Out' },
+  { id: 'tilt-up', label: 'Tilt Up' },
+];
+
+const EFFECTS = [
+  { id: 'none', label: 'None' },
+  { id: 'sparkles', label: '✨ Sparkles' },
+  { id: 'snow', label: '❄️ Snow' },
+  { id: 'rain', label: '🌧️ Rain' },
+  { id: 'bubbles', label: '🫧 Bubbles' },
+  { id: 'stars', label: '⭐ Stars' },
+  { id: 'fireflies', label: '🪰 Fireflies' },
+];
+
+const TRANSITIONS = ['fade', 'slide', 'zoom', 'wipe', 'sparkle'];
+
+const DEMO_VIDEO = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+
+function dicebearUrl(style, seed, skin, clothes, bg) {
+  const params = new URLSearchParams({
+    seed: seed || 'default',
+    backgroundColor: (bg || '#e0e7ff').replace('#',''),
+    skinColor: (skin || '#f5cba7').replace('#',''),
+    clothingColor: (clothes || '#6366f1').replace('#',''),
+  });
+  return `https://api.dicebear.com/7.x/${style}/svg?${params.toString()}`;
+}
+
+// ============================================================
+// STATE
+// ============================================================
+let projects = [];
+let currentProject = null;
+let selectedSceneId = null;
+let previewIndex = 0;
+let renderInterval = null;
+let selectedCharacterId = null;
+let editingCharacterId = null;
+let playerIndex = 0;
+let playerTimer = null;
+let playerPlaying = false;
+let playerMode = 'stage';
+let playerStartTime = 0;
+let playerElapsed = 0;
+let masterMuted = false;
+let availableVoices = [];
+let tempCustomImage = null;
+
+// ============================================================
+// AUDIO (Web Audio API - sound effects)
+// ============================================================
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) { console.warn('Web Audio not supported'); }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playSfx(type = 'pop') {
+  if (masterMuted) return;
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  const t = ctx.currentTime;
+  if (type === 'whoosh') {
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(500, t);
+    o.frequency.exponentialRampToValueAtTime(90, t + 0.35);
+    g.gain.setValueAtTime(0.10, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    o.start(t); o.stop(t + 0.4);
+  } else if (type === 'chime') {
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(880, t);
+    o.frequency.setValueAtTime(1320, t + 0.08);
+    g.gain.setValueAtTime(0.10, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+    o.start(t); o.stop(t + 0.6);
+  } else if (type === 'pop') {
+    o.type = 'sine';
+    o.frequency.setValueAtTime(700, t);
+    o.frequency.exponentialRampToValueAtTime(300, t + 0.08);
+    g.gain.setValueAtTime(0.14, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    o.start(t); o.stop(t + 0.12);
+  } else if (type === 'success') {
+    // Arpeggio
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+      const oo = ctx.createOscillator();
+      const gg = ctx.createGain();
+      oo.connect(gg); gg.connect(ctx.destination);
+      oo.type = 'triangle';
+      oo.frequency.setValueAtTime(f, t + i * 0.1);
+      gg.gain.setValueAtTime(0.09, t + i * 0.1);
+      gg.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.4);
+      oo.start(t + i * 0.1); oo.stop(t + i * 0.1 + 0.4);
+    });
+  }
+}
+
+// ============================================================
+// SPEECH
+// ============================================================
+function loadVoices() {
+  availableVoices = window.speechSynthesis.getVoices() || [];
+  populateVoiceSelects();
+}
+
+function populateVoiceSelects() {
+  ['narrator-voice', 'char-voice'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = availableVoices.map((v, i) => `<option value="${i}">${v.name} (${v.lang})</option>`).join('');
+    if (current && availableVoices[current]) sel.value = current;
+  });
+}
+
+function speak(text, opts = {}) {
+  if (!text || masterMuted) return;
+  if (!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const voiceIdx = opts.voiceIndex !== undefined && opts.voiceIndex !== '' ? parseInt(opts.voiceIndex) : -1;
+    if (availableVoices[voiceIdx]) u.voice = availableVoices[voiceIdx];
+    u.pitch = opts.pitch !== undefined ? parseFloat(opts.pitch) : 1;
+    u.rate = opts.rate !== undefined ? parseFloat(opts.rate) : 1;
+    u.volume = 1;
+    window.speechSynthesis.speak(u);
+  } catch (e) { console.warn(e); }
+}
+
+function stopSpeaking() { try { window.speechSynthesis.cancel(); } catch(e){} }
+
+function toggleMasterMute() {
+  masterMuted = !masterMuted;
+  if (masterMuted) stopSpeaking();
+  const icon = masterMuted ? 'volume-x' : 'volume-2';
+  const hdr = document.getElementById('master-mute');
+  if (hdr) hdr.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5 text-slate-300"></i>`;
+  const pl = document.getElementById('player-mute');
+  if (pl) pl.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5"></i>`;
+  lucide.createIcons();
+}
+
+function testNarrator() {
+  ensureAudio();
+  speak('Once upon a time, in a land far away, a magical story began.', {
+    voiceIndex: document.getElementById('narrator-voice').value,
+    pitch: document.getElementById('narrator-pitch').value,
+    rate: document.getElementById('narrator-rate').value,
+  });
+}
+
+function testCharVoice() {
+  ensureAudio();
+  const name = document.getElementById('char-name').value || 'Character';
+  const line = document.getElementById('char-line').value || `Hello, I am ${name}!`;
+  speak(line, {
+    voiceIndex: document.getElementById('char-voice').value,
+    pitch: document.getElementById('char-pitch').value,
+    rate: document.getElementById('char-rate').value,
+  });
+}
+
+function saveNarratorSettings() {
+  if (!currentProject) return;
+  currentProject.narratorVoice = {
+    voiceIndex: document.getElementById('narrator-voice').value,
+    pitch: document.getElementById('narrator-pitch').value,
+    rate: document.getElementById('narrator-rate').value,
+  };
+  saveProjects();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  if ('speechSynthesis' in window) {
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    setTimeout(loadVoices, 500);
+    setTimeout(loadVoices, 1500);
+  }
+  loadProjects();
+  renderCategories();
+  renderHome();
+  renderLibrary();
+  switchTab('home');
+  lucide.createIcons();
+
+  // Unlock audio on first click
+  document.body.addEventListener('click', () => ensureAudio(), { once: true });
+});
+
+// ============================================================
+// STORAGE
+// ============================================================
+function loadProjects() {
+  const stored = localStorage.getItem('storymagic_projects_v4');
+  if (stored) { try { projects = JSON.parse(stored); } catch(e) { projects = []; } }
+  if (projects.length === 0) {
+    projects = [{
+      id: 'demo-1',
+      title: 'The Owl and the Moonlit Castle',
+      theme: 'Bedtime Fairy Tale',
+      rendered: true,
+      videoUrl: null,
+      narratorVoice: { voiceIndex: '', pitch: '1', rate: '0.9' },
+      characters: [
+        { id: 'c1', name: 'Ollie', style: 'adventurer', skin: '#f5cba7', clothes: '#6366f1', bg: '#e0e7ff', customImage: null, voiceIndex: '', pitch: '1.4', rate: '0.95', line: 'Whoo! Hello there!' }
+      ],
+      scenes: [
+        { id: 'd1', templateId: 1, title: 'The Castle Appears', narration: 'Once upon a time, a castle glowed under the moon.', duration: 6, transition: 'fade', camera: 'zoom-in', effect: 'stars',
+          characters: [{ id: 'c1', x: 40, y: 15, size: 40, action: 'idle' }] },
+        { id: 'd2', templateId: 5, title: 'A Starry Flight', narration: 'Ollie soared into the night sky.', duration: 6, transition: 'sparkle', camera: 'pan-right', effect: 'sparkles',
+          characters: [{ id: 'c1', x: 30, y: 20, size: 40, action: 'fly' }] }
+      ]
+    }];
+    saveProjects();
+  }
+}
+
+function saveProjects() {
+  try { localStorage.setItem('storymagic_projects_v4', JSON.stringify(projects)); }
+  catch (e) { console.warn('Save failed:', e); }
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(tab) {
+  ['home', 'studio', 'library'].forEach(t => {
+    const el = document.getElementById('view-' + t);
+    if (el) el.classList.add('hidden');
+    const btn = document.getElementById('tab-' + t);
+    if (btn) {
+      if (t === tab) { btn.classList.add('text-white', 'bg-slate-800'); btn.classList.remove('text-slate-400'); }
+      else { btn.classList.remove('text-white', 'bg-slate-800'); btn.classList.add('text-slate-400'); }
+    }
+  });
+  const target = document.getElementById('view-' + tab);
+  if (target) { target.classList.remove('hidden'); target.classList.add('animate-fade'); }
+  if (tab === 'studio') updateStudioView();
+  if (tab === 'library') renderLibrary();
+  if (tab === 'home') renderHome();
+  lucide.createIcons();
+}
+
+// ============================================================
+// HOME / LIBRARY / CATEGORIES
+// ============================================================
+function renderHome() {
+  const rendered = projects.filter(p => p.rendered);
+  const featured = rendered[0];
+  if (featured) {
+    const t = SCENE_TEMPLATES.find(x => x.id === (featured.scenes[0]?.templateId || 1)) || SCENE_TEMPLATES[0];
+    document.getElementById('home-featured').innerHTML = `
+      <div class="relative rounded-3xl overflow-hidden shadow-2xl aspect-video bg-black group cursor-pointer" onclick="playVideo('${featured.id}')">
+        <div class="absolute inset-0" style="background: ${t.bg}"></div>
+        <div class="absolute inset-0 flex items-center justify-center text-[10rem] opacity-30">${t.emoji}</div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col items-center justify-center">
+          <button class="bg-white/90 hover:bg-white text-indigo-600 rounded-full p-6 shadow-2xl transition hover:scale-110 mb-6">
+            <i data-lucide="play" class="w-12 h-12 ml-1"></i>
+          </button>
+          <h3 class="text-white text-3xl md:text-4xl font-black drop-shadow-lg text-center px-4">${featured.title}</h3>
+          <p class="text-gray-200 mt-2 font-medium">${featured.theme} • ${featured.scenes.length} scenes</p>
+        </div>
+      </div>`;
+  } else {
+    document.getElementById('home-featured').innerHTML = `
+      <div class="rounded-3xl border-2 border-dashed border-slate-800 p-16 text-center">
+        <p class="text-slate-500 font-bold mb-4">No movies rendered yet</p>
+        <button onclick="openCreator()" class="bg-indigo-600 hover:bg-indigo-500 px-6 py-3 rounded-xl font-black transition">Create Your First Story</button>
+      </div>`;
+  }
+  document.getElementById('home-movies').innerHTML = rendered.slice(1).map(p => movieCard(p)).join('');
+  lucide.createIcons();
+}
+
+function movieCard(p) {
+  const t = SCENE_TEMPLATES.find(x => x.id === (p.scenes[0]?.templateId || 1)) || SCENE_TEMPLATES[0];
+  return `
+    <div onclick="playVideo('${p.id}')" class="bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 hover:border-indigo-700 transition cursor-pointer group">
+      <div class="relative aspect-video flex items-center justify-center text-5xl" style="background: ${t.bg}">
+        ${t.emoji}
+        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+          <i data-lucide="play" class="w-10 h-10 text-white"></i>
+        </div>
+      </div>
+      <div class="p-4">
+        <h4 class="font-black line-clamp-1 group-hover:text-indigo-400 transition">${p.title}</h4>
+        <p class="text-sm text-slate-500 font-medium mt-1">${p.theme}</p>
+      </div>
+    </div>`;
+}
+
+function renderCategories() {
+  document.getElementById('category-grid').innerHTML = CATEGORIES.map(c => `
+    <div onclick="switchTab('library')" class="bg-gradient-to-br ${c.color} border ${c.border} rounded-3xl p-7 cursor-pointer transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+      <div class="text-6xl mb-5">${c.icon}</div>
+      <h3 class="text-xl font-black mb-2">${c.title}</h3>
+      <p class="text-sm opacity-80 font-medium mb-5">${c.desc}</p>
+      <div class="flex items-center text-sm font-black uppercase tracking-wider opacity-90">Watch Now <i data-lucide="chevron-right" class="w-4 h-4 ml-1"></i></div>
+    </div>`).join('');
+}
+
+function renderLibrary() {
+  const grid = document.getElementById('library-grid');
+  if (!projects.length) { grid.innerHTML = `<div class="col-span-4 text-center py-20 text-slate-500 font-bold">No projects yet.</div>`; return; }
+  grid.innerHTML = projects.map(p => {
+    const t = SCENE_TEMPLATES.find(x => x.id === (p.scenes[0]?.templateId || 1)) || SCENE_TEMPLATES[0];
+    return `
+    <div class="bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 hover:border-indigo-700 transition">
+      <div class="relative aspect-video flex items-center justify-center text-5xl" style="background: ${t.bg}">
+        ${t.emoji}
+        ${p.rendered ? '<div class="absolute top-3 right-3 bg-green-600 text-white text-xs font-black px-2 py-1 rounded">READY</div>' : '<div class="absolute top-3 right-3 bg-amber-600 text-white text-xs font-black px-2 py-1 rounded">DRAFT</div>'}
+      </div>
+      <div class="p-4">
+        <h4 class="font-black line-clamp-1">${p.title}</h4>
+        <p class="text-sm text-slate-500 font-medium mt-1">${p.theme} • ${p.scenes.length} scenes</p>
+        <div class="flex gap-2 mt-3">
+          <button onclick="openProject('${p.id}')" class="flex-1 bg-slate-800 hover:bg-slate-700 rounded-lg py-2 text-xs font-bold transition">Open</button>
+          ${p.rendered ? `<button onclick="playVideo('${p.id}')" class="bg-indigo-600 hover:bg-indigo-500 rounded-lg px-3 py-2 text-xs font-bold transition"><i data-lucide="play" class="w-3 h-3"></i></button>` : ''}
+          <button onclick="deleteProject('${p.id}')" class="bg-red-900/40 hover:bg-red-900/60 border border-red-800 rounded-lg px-3 py-2 text-xs font-bold text-red-300 transition"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function openProject(id) {
+  currentProject = projects.find(p => p.id === id);
+  if (!currentProject) return;
+  if (!currentProject.characters) currentProject.characters = [];
+  if (!currentProject.narratorVoice) currentProject.narratorVoice = { voiceIndex: '', pitch: '1', rate: '0.9' };
+  currentProject.scenes.forEach(s => {
+    if (!s.characters) s.characters = [];
+    if (!s.camera) s.camera = 'static';
+    if (!s.effect) s.effect = 'none';
+    s.characters.forEach(c => { if (!c.action) c.action = 'idle'; });
+  });
+  selectedSceneId = currentProject.scenes[0]?.id || null;
+  selectedCharacterId = currentProject.characters[0]?.id || null;
+  switchTab('studio');
+}
+
+function deleteProject(id) {
+  if (!confirm('Delete this project?')) return;
+  projects = projects.filter(p => p.id !== id);
+  saveProjects(); renderLibrary(); renderHome();
+}
+
+// ============================================================
+// CREATOR
+// ============================================================
+function openCreator() {
+  const m = document.getElementById('creator-modal');
+  m.classList.remove('hidden'); m.classList.add('flex');
+  document.body.classList.add('modal-open');
+  lucide.createIcons();
+}
+function closeCreator() {
+  const m = document.getElementById('creator-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+  document.body.classList.remove('modal-open');
+}
+
+function createProject() {
+  const title = document.getElementById('new-title').value || 'Untitled Story';
+  const theme = document.getElementById('new-theme').value;
+  const videoFile = document.getElementById('new-video').files[0];
+
+  const finish = (videoUrl) => {
+    const newProject = {
+      id: 'p' + Date.now(),
+      title, theme, rendered: false,
+      videoUrl: videoUrl || null,
+      narratorVoice: { voiceIndex: '', pitch: '1', rate: '0.9' },
+      characters: [
+        { id: 'c' + Date.now(), name: 'Hero', style: 'adventurer', skin: '#f5cba7', clothes: '#6366f1', bg: '#e0e7ff', customImage: null, voiceIndex: '', pitch: '1.1', rate: '1', line: 'Hello!' }
+      ],
+      scenes: [{
+        id: 's' + Date.now(),
+        templateId: 1,
+        title: 'Opening Scene',
+        narration: 'Once upon a time...',
+        duration: 6,
+        transition: 'fade',
+        camera: 'zoom-in',
+        effect: 'sparkles',
+        characters: []
+      }]
+    };
+    projects.unshift(newProject);
+    saveProjects();
+    currentProject = newProject;
+    selectedSceneId = newProject.scenes[0].id;
+    selectedCharacterId = newProject.characters[0].id;
+    closeCreator();
+    switchTab('studio');
+    renderLibrary(); renderHome();
+  };
+
+  if (videoFile) {
+    if (videoFile.size > 50 * 1024 * 1024) alert('Video over 50MB — will play this session but not be saved.');
+    const r = new FileReader();
+    r.onload = e => finish(e.target.result);
+    r.onerror = () => finish(null);
+    r.readAsDataURL(videoFile);
+  } else finish(null);
+}
+
+// ============================================================
+// STUDIO
+// ============================================================
+function updateStudioView() {
+  if (!currentProject) {
+    document.getElementById('studio-empty').classList.remove('hidden');
+    document.getElementById('studio-workspace').classList.add('hidden');
+    return;
+  }
+  document.getElementById('studio-empty').classList.add('hidden');
+  document.getElementById('studio-workspace').classList.remove('hidden');
+  document.getElementById('project-name').value = currentProject.title;
+
+  const nv = currentProject.narratorVoice || { voiceIndex: '', pitch: '1', rate: '0.9' };
+  const narrSel = document.getElementById('narrator-voice');
+  if (narrSel && availableVoices.length) narrSel.value = nv.voiceIndex || '';
+  document.getElementById('narrator-pitch').value = nv.pitch || '1';
+  document.getElementById('narrator-pitch-val').textContent = nv.pitch || '1';
+  document.getElementById('narrator-rate').value = nv.rate || '0.9';
+  document.getElementById('narrator-rate-val').textContent = nv.rate || '0.9';
+
+  renderTemplates(); renderCharacterGrid(); renderStoryboard(); renderInspector(); updateTotals();
+  lucide.createIcons();
+}
+
+function renderTemplates() {
+  document.getElementById('template-grid').innerHTML = SCENE_TEMPLATES.map(t => `
+    <button onclick="addScene(${t.id})" class="group rounded-xl overflow-hidden border-2 border-slate-800 hover:border-indigo-500 transition">
+      <div class="h-16 w-full flex items-center justify-center text-3xl" style="background: ${t.bg}">${t.emoji}</div>
+      <div class="p-2 text-left bg-slate-900"><p class="text-[10px] font-bold truncate">${t.name}</p></div>
+    </button>`).join('');
+}
+
+function renderCharacterGrid() {
+  const grid = document.getElementById('char-grid');
+  if (!currentProject || !currentProject.characters.length) {
+    grid.innerHTML = `<p class="col-span-3 text-xs text-slate-500 text-center py-4">No characters yet</p>`;
+    return;
+  }
+  grid.innerHTML = currentProject.characters.map(c => {
+    const img = c.customImage || dicebearUrl(c.style, c.name, c.skin, c.clothes, c.bg);
+    const sel = c.id === selectedCharacterId;
+    return `
+      <button onclick="selectCharacter('${c.id}')" class="rounded-xl overflow-hidden border-2 ${sel ? 'border-indigo-500' : 'border-slate-800 hover:border-slate-600'} transition bg-slate-950 p-1">
+        <div class="aspect-square flex items-center justify-center" style="background: ${c.bg}">
+          <img src="${img}" class="w-full h-full object-contain char-idle" />
+        </div>
+        <p class="text-[10px] font-bold truncate mt-1 text-slate-300">${c.name}</p>
+      </button>`;
+  }).join('');
+}
+
+function selectCharacter(id) { selectedCharacterId = id; renderCharacterGrid(); renderInspector(); }
+
+// ============================================================
+// CHARACTER BUILDER
+// ============================================================
+function openCharBuilder() {
+  if (!currentProject) { alert('Open a project first.'); return; }
+  editingCharacterId = null;
+  tempCustomImage = null;
+  document.getElementById('char-name').value = 'New Hero';
+  document.getElementById('char-face').value = 'adventurer';
+  document.getElementById('char-skin').value = '#f5cba7';
+  document.getElementById('char-clothes').value = '#6366f1';
+  document.getElementById('char-bg').value = '#e0e7ff';
+  document.getElementById('char-upload').value = '';
+  document.getElementById('char-pitch').value = '1.1';
+  document.getElementById('char-pitch-val').textContent = '1.1';
+  document.getElementById('char-rate').value = '1';
+  document.getElementById('char-rate-val').textContent = '1';
+  document.getElementById('char-line').value = 'Hello!';
+  populateVoiceSelects();
+  updateCharPreview();
+  const m = document.getElementById('char-modal');
+  m.classList.remove('hidden'); m.classList.add('flex');
+  document.body.classList.add('modal-open');
+  lucide.createIcons();
+}
+function closeCharBuilder() {
+  const m = document.getElementById('char-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+  document.body.classList.remove('modal-open');
+}
+
+function updateCharPreview() {
+  const name = document.getElementById('char-name').value || 'Hero';
+  const style = document.getElementById('char-face').value;
+  const img = document.getElementById('char-preview');
+  if (tempCustomImage) img.src = tempCustomImage;
+  else img.src = dicebearUrl(style, name, document.getElementById('char-skin').value, document.getElementById('char-clothes').value, document.getElementById('char-bg').value);
+}
+
+function handleCharUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { tempCustomImage = e.target.result; document.getElementById('char-preview').src = tempCustomImage; };
+  reader.readAsDataURL(file);
+}
+
+function saveCharacter() {
+  const char = {
+    id: editingCharacterId || ('c' + Date.now()),
+    name: document.getElementById('char-name').value || 'Hero',
+    style: document.getElementById('char-face').value,
+    skin: document.getElementById('char-skin').value,
+    clothes: document.getElementById('char-clothes').value,
+    bg: document.getElementById('char-bg').value,
+    customImage: tempCustomImage,
+    voiceIndex: document.getElementById('char-voice').value,
+    pitch: document.getElementById('char-pitch').value,
+    rate: document.getElementById('char-rate').value,
+    line: document.getElementById('char-line').value
+  };
+  if (editingCharacterId) {
+    const idx = currentProject.characters.findIndex(c => c.id === editingCharacterId);
+    if (idx >= 0) currentProject.characters[idx] = char;
+  } else {
+    currentProject.characters.push(char);
+    selectedCharacterId = char.id;
+  }
+  saveProjects();
+  closeCharBuilder();
+  renderCharacterGrid(); renderInspector();
+  lucide.createIcons();
+}
+
+// ============================================================
+// SCENES
+// ============================================================
+function addScene(templateId) {
+  if (!currentProject) return;
+  const s = {
+    id: 's' + Date.now(), templateId, title: 'New Scene', narration: 'Add your narration...',
+    duration: 6, transition: 'fade', camera: 'zoom-in', effect: 'sparkles', characters: []
+  };
+  currentProject.scenes.push(s);
+  selectedSceneId = s.id;
+  saveProjects();
+  renderStoryboard(); renderInspector(); updateTotals();
+  playSfx('pop');
+}
+
+function selectScene(id) { selectedSceneId = id; renderStoryboard(); renderInspector(); }
+
+function updateScene(field, value) {
+  if (!currentProject) return;
+  const s = currentProject.scenes.find(x => x.id === selectedSceneId);
+  if (!s) return;
+  s[field] = value;
+  saveProjects(); renderStoryboard(); updateTotals();
+}
+
+function removeScene() {
+  if (!currentProject || currentProject.scenes.length === 1) return;
+  currentProject.scenes = currentProject.scenes.filter(s => s.id !== selectedSceneId);
+  selectedSceneId = currentProject.scenes[0].id;
+  saveProjects(); renderStoryboard(); renderInspector(); updateTotals();
+}
+
+function moveScene(dir) {
+  if (!currentProject) return;
+  const arr = currentProject.scenes;
+  const idx = arr.findIndex(s => s.id === selectedSceneId);
+  const newIdx = dir === 'left' ? idx - 1 : idx + 1;
+  if (newIdx < 0 || newIdx >= arr.length) return;
+  [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+  saveProjects(); renderStoryboard(); updateTotals();
+}
+
+function placeCharacterInScene(charId) {
+  if (!currentProject) return;
+  const s = currentProject.scenes.find(x => x.id === selectedSceneId);
+  if (!s) return;
+  s.characters = s.characters || [];
+  if (s.characters.find(c => c.id === charId)) return;
+  const size = 45;
+  s.characters.push({ id: charId, x: 10 + Math.random() * 35, y: 15, size, action: 'idle' });
+  saveProjects(); renderInspector(); renderStoryboard();
+  playSfx('pop');
+  const ch = currentProject.characters.find(c => c.id === charId);
+  if (ch && ch.line) speak(ch.line, { voiceIndex: ch.voiceIndex, pitch: ch.pitch, rate: ch.rate });
+}
+
+function removeCharacterFromScene(charId) {
+  const s = currentProject.scenes.find(x => x.id === selectedSceneId);
+  if (!s) return;
+  s.characters = s.characters.filter(c => c.id !== charId);
+  saveProjects(); renderInspector(); renderStoryboard();
+}
+
+function updateSceneCharacter(charId, field, value) {
+  const s = currentProject.scenes.find(x => x.id === selectedSceneId);
+  if (!s) return;
+  const c = s.characters.find(x => x.id === charId);
+  if (!c) return;
+  c[field] = field === 'size' || field === 'x' || field === 'y' ? parseInt(value) : value;
+  saveProjects(); renderInspector();
+}
+
+function renderStoryboard() {
+  if (!currentProject) return;
+  document.getElementById('storyboard-list').innerHTML = currentProject.scenes.map((s, i) => {
+    const t = SCENE_TEMPLATES.find(x => x.id === s.templateId) || SCENE_TEMPLATES[0];
+    const sel = s.id === selectedSceneId;
+    return `
+      <div onclick="selectScene('${s.id}')" class="cursor-pointer rounded-xl overflow-hidden border-2 transition ${sel ? 'border-indigo-500 shadow-lg shadow-indigo-900/30' : 'border-slate-800 hover:border-slate-700'}">
+        <div class="relative h-20" style="background: ${t.bg}">
+          <div class="absolute inset-0 flex items-center justify-center text-3xl">${t.emoji}</div>
+          <div class="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-black px-2 py-0.5 rounded">#${i+1}</div>
+          <div class="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-black px-2 py-0.5 rounded">${s.duration}s</div>
+          ${(s.characters||[]).length ? `<div class="absolute bottom-2 left-2 bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded">${s.characters.length} 👤</div>` : ''}
+        </div>
+        <div class="p-3 bg-slate-950">
+          <p class="text-xs font-bold truncate">${s.title}</p>
+          <p class="text-[10px] text-slate-500 mt-1 line-clamp-2 leading-snug">${s.narration}</p>
+        </div>
+      </div>`;
+  }).join('');
+  document.getElementById('scene-count').textContent = currentProject.scenes.length + ' scenes';
+}
+
+// ============================================================
+// STAGE RENDERER (with movement + camera + effects)
+// ============================================================
+function renderParticles(container, effect) {
+  if (!effect || effect === 'none') return;
+  const count = { sparkles: 20, snow: 30, rain: 40, bubbles: 18, stars: 25, fireflies: 12 }[effect] || 20;
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    const left = Math.random() * 100;
+    const delay = Math.random() * 6;
+    const dur = 3 + Math.random() * 4;
+    const size = effect === 'sparkles' ? 8 + Math.random() * 8
+               : effect === 'snow' ? 4 + Math.random() * 6
+               : effect === 'rain' ? 2
+               : effect === 'bubbles' ? 10 + Math.random() * 14
+               : effect === 'stars' ? 4 + Math.random() * 5
+               : 4 + Math.random() * 4;
+    let char = '✦';
+    let anim = 'p-sparkle';
+    if (effect === 'snow') { char = '❄'; anim = 'p-snow'; }
+    else if (effect === 'rain') { char = '|'; anim = 'p-rain'; }
+    else if (effect === 'bubbles') { char = '●'; anim = 'p-bubble'; }
+    else if (effect === 'stars') { char = '★'; anim = 'p-star'; }
+    else if (effect === 'fireflies') { char = '●'; anim = 'p-firefly'; }
+
+    const color = effect === 'snow' ? '#e0f2fe'
+                : effect === 'rain' ? '#93c5fd'
+                : effect === 'bubbles' ? 'rgba(255,255,255,0.5)'
+                : effect === 'fireflies' ? '#fde047'
+                : effect === 'stars' ? '#fef08a'
+                : '#fef9c3';
+
+    html += `<div class="particle" style="
+      left: ${left}%; top: ${effect === 'bubbles' || effect === 'fireflies' ? (Math.random()*100) : 0}%;
+      font-size: ${size}px;
+      color: ${color};
+      animation-name: ${anim};
+      animation-duration: ${dur}s;
+      animation-delay: -${delay}s;
+      opacity: 0;
+      ${effect === 'rain' ? `height: ${14 + Math.random()*18}px; width: 2px; background: ${color}; border-radius: 2px;` : ''}
+      ${effect === 'bubbles' ? `box-shadow: inset -3px -3px 6px rgba(255,255,255,0.4), 0 0 8px rgba(255,255,255,0.3); border-radius: 50%; width: ${size}px; height: ${size}px;` : ''}
+      ${effect === 'fireflies' ? `width: ${size}px; height: ${size}px; border-radius: 50%; box-shadow: 0 0 12px #fde047;` : ''}
+    ">${effect === 'rain' || effect === 'bubbles' || effect === 'fireflies' ? '' : char}</div>`;
+  }
+  container.innerHTML = html;
+}
+
+function renderStage(el, scene, project, options = {}) {
+  const showNarration = options.showNarration !== false;
+  const animate = options.animate === true; // moving? if false, static first frame
+  const t = SCENE_TEMPLATES.find(x => x.id === scene.templateId) || SCENE_TEMPLATES[0];
+  const camera = scene.camera || 'static';
+  const effect = scene.effect || 'none';
+
+  const charsHtml = (scene.characters || []).map(cid => {
+    const c = project.characters.find(x => x.id === cid.id);
+    if (!c) return '';
+    const img = c.customImage || dicebearUrl(c.style, c.name, c.skin, c.clothes, c.bg);
+    const actionClass = animate ? `char-${cid.action || 'idle'}` : 'char-idle';
+    return `<div class="stage-char ${actionClass}" data-char-id="${c.id}" style="left: ${cid.x}%; bottom: ${cid.y}%; width: ${cid.size}%;">
+      <img src="${img}" alt="${c.name}" />
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="stage-camera cam-${camera}">
+      <div class="stage-bg" style="background: ${t.bg}">
+        <div class="stage-bg-emoji">${t.emoji}</div>
+        ${t.night ? '<div style="position:absolute;top:8%;right:12%;font-size:4rem;opacity:0.85;">🌙</div>' : ''}
+      </div>
+      <div class="stage-layer">
+        ${charsHtml}
+      </div>
+    </div>
+    <div class="particles" id="stage-particles-${el.id}"></div>
+    ${showNarration ? `<div class="stage-narr">"${scene.narration}"</div>` : ''}
+  `;
+  const particlesEl = el.querySelector('.particles');
+  if (particlesEl) renderParticles(particlesEl, effect);
+}
+
+function renderInspector() {
+  if (!currentProject) return;
+  const s = currentProject.scenes.find(x => x.id === selectedSceneId);
+  if (!s) {
+    document.getElementById('inspector-content').innerHTML = '<p class="text-slate-500 text-center py-20">Add a scene to begin.</p>';
+    return;
+  }
+  if (!s.characters) s.characters = [];
+  const idx = currentProject.scenes.findIndex(x => x.id === s.id);
+  const selectedChar = currentProject.characters.find(c => c.id === selectedCharacterId);
+
+  document.getElementById('inspector-content').innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-2xl font-black">Scene ${idx+1}</h2>
+      <span class="text-xs font-bold text-slate-500 bg-slate-950 px-3 py-1.5 rounded-full">${s.duration}s • ${s.characters.length} chars</span>
+    </div>
+
+    <div class="stage aspect-video w-full border-4 border-slate-800 mb-4" id="inspector-stage"></div>
+
+    <div class="flex gap-2 mb-5">
+      <button onclick="playCurrentScene()" class="flex-1 flex items-center justify-center gap-2 p-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-xl font-black text-sm transition">
+        <i data-lucide="play" class="w-4 h-4"></i> Play this Scene
+      </button>
+      <button onclick="speakCurrentScene()" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-sm transition" title="Speak narration">
+        <i data-lucide="volume-2" class="w-4 h-4"></i>
+      </button>
+      <button onclick="stopSpeaking()" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-sm transition" title="Stop">
+        <i data-lucide="square" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    ${selectedChar ? `
+      <button onclick="placeCharacterInScene('${selectedChar.id}')" class="w-full mb-5 flex items-center justify-center gap-2 p-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl font-black text-sm transition">
+        <i data-lucide="user-plus" class="w-4 h-4"></i> Place "${selectedChar.name}" in this scene
+      </button>
+    ` : `<p class="text-xs text-slate-500 text-center mb-5">Select a character on the left to place them.</p>`}
+
+    ${s.characters.length ? `
+      <div class="mb-5">
+        <p class="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Characters in scene</p>
+        <div class="space-y-2">
+          ${s.characters.map(sc => {
+            const ch = currentProject.characters.find(x => x.id === sc.id);
+            if (!ch) return '';
+            const img = ch.customImage || dicebearUrl(ch.style, ch.name, ch.skin, ch.clothes, ch.bg);
+            return `<div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
+              <img src="${img}" class="w-10 h-10 object-contain" />
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-bold truncate">${ch.name}</p>
+                <select onchange="updateSceneCharacter('${sc.id}', 'action', this.value)" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-bold p-1.5">
+                  ${ACTIONS.map(a => `<option value="${a.id}" ${sc.action===a.id?'selected':''}>${a.label}</option>`).join('')}
+                </select>
+                <div class="flex gap-2 mt-2 text-[10px]">
+                  <label class="flex-1 font-bold text-slate-500">X:<input type="range" min="0" max="85" value="${sc.x}" oninput="updateSceneCharacter('${sc.id}','x',this.value)" class="w-full" /></label>
+                  <label class="flex-1 font-bold text-slate-500">Y:<input type="range" min="0" max="60" value="${sc.y}" oninput="updateSceneCharacter('${sc.id}','y',this.value)" class="w-full" /></label>
+                  <label class="flex-1 font-bold text-slate-500">Size:<input type="range" min="15" max="80" value="${sc.size}" oninput="updateSceneCharacter('${sc.id}','size',this.value)" class="w-full" /></label>
+                </div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <button onclick="speakCharLine('${ch.id}')" class="text-indigo-400 hover:text-indigo-300 p-1"><i data-lucide="volume-2" class="w-3 h-3"></i></button>
+                <button onclick="removeCharacterFromScene('${sc.id}')" class="text-red-400 hover:text-red-300 p-1"><i data-lucide="x" class="w-3 h-3"></i></button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    ` : ''}
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Scene Title</label>
+        <input value="${s.title.replace(/"/g,'&quot;')}" oninput="updateScene('title', this.value); renderStoryboard();" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 font-bold focus:border-indigo-500 outline-none transition" />
+      </div>
+      <div>
+        <label class="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Narration</label>
+        <textarea oninput="updateScene('narration', this.value); renderStoryboard();" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 font-medium focus:border-indigo-500 outline-none transition resize-none">${s.narration}</textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Duration: ${s.duration}s</label>
+          <input type="range" min="3" max="30" value="${s.duration}" oninput="updateScene('duration', parseInt(this.value)); renderInspector();" class="w-full" />
+        </div>
+        <div>
+          <label class="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Transition</label>
+          <select onchange="updateScene('transition', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 font-bold focus:border-indigo-500 outline-none">
+            ${TRANSITIONS.map(t => `<option value="${t}" ${s.transition===t?'selected':''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Camera</label>
+          <select onchange="updateScene('camera', this.value); renderInspector();" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 font-bold focus:border-indigo-500 outline-none">
+            ${CAMERAS.map(c => `<option value="${c.id}" ${s.camera===c.id?'selected':''}>${c.label}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Effects</label>
+          <select onchange="updateScene('effect', this.value); renderInspector();" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 font-bold focus:border-indigo-500 outline-none">
+            ${EFFECTS.map(e => `<option value="${e.id}" ${s.effect===e.id?'selected':''}>${e.label}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="moveScene('left')" class="flex-1 flex items-center justify-center gap-1 p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-xs transition"><i data-lucide="chevron-left" class="w-4 h-4"></i> Left</button>
+        <button onclick="moveScene('right')" class="flex-1 flex items-center justify-center gap-1 p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-xs transition">Right <i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+        <button onclick="removeScene()" class="flex items-center justify-center gap-1 p-2.5 bg-red-900/40 hover:bg-red-900/60 border border-red-800 rounded-xl font-bold text-xs text-red-300 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+  const stageEl = document.getElementById('inspector-stage');
+  if (stageEl) { stageEl.id = 'inspector-stage'; renderStage(stageEl, s, currentProject, { showNarration: true, animate: true }); }
+}
+
+function speakCurrentScene() {
+  if (!currentProject) return;
+  const s = currentProject.scenes.find(x => x.id === selectedSceneId);
+  if (!s) return;
+  const nv = currentProject.narratorVoice || {};
+  speak(s.narration, { voiceIndex: nv.voiceIndex, pitch: nv.pitch, rate: nv.rate });
+}
+
+function speakCharLine(charId) {
+  const ch = currentProject.characters.find(c => c.id === charId);
+  if (!ch) return;
+  speak(ch.line || `Hello, I am ${ch.name}!`, { voiceIndex: ch.voiceIndex, pitch: ch.pitch, rate: ch.rate });
+}
+
+function updateTotals() {
+  if (!currentProject) return;
+  const total = currentProject.scenes.reduce((a,s) => a + s.duration, 0);
+  const m = Math.floor(total/60), sec = (total%60).toString().padStart(2,'0');
+  document.getElementById('total-duration').textContent = `${m}:${sec}`;
+  document.getElementById('duration-bar').style.width = Math.min((total/1800)*100,100) + '%';
+}
+
+function saveProject() {
+  if (!currentProject) return;
+  currentProject.title = document.getElementById('project-name').value;
+  saveProjects(); renderLibrary();
+  alert('💾 "' + currentProject.title + '" saved!');
+}
+
+// Quick play current scene in a floating overlay
+function playCurrentScene() {
+  if (!currentProject) return;
+  const s = currentProject.scenes.find(x => x.id === selectedSceneId);
+  if (!s) return;
+  ensureAudio();
+  const nv = currentProject.narratorVoice || {};
+  speak(s.narration, { voiceIndex: nv.voiceIndex, pitch: nv.pitch, rate: nv.rate });
+  playSfx('chime');
+  // Animate the inspector stage
+  const el = document.getElementById('inspector-stage');
+  if (el) {
+    el.classList.remove('scene-enter-' + (s.transition || 'fade'));
+    void el.offsetWidth;
+    el.classList.add('scene-enter-' + (s.transition || 'fade'));
+    renderStage(el, s, currentProject, { showNarration: true, animate: true });
+  }
+  // Play each character's line with a small delay
+  (s.characters || []).forEach((sc, i) => {
+    const ch = currentProject.characters.find(x => x.id === sc.id);
+    if (ch && ch.line) {
+      setTimeout(() => {
+        if (ch.line && i > 0) speak(ch.line, { voiceIndex: ch.voiceIndex, pitch: ch.pitch, rate: ch.rate });
+      }, 1500 + i * 2000);
+    }
+  });
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function renderMovie() {
+  if (!currentProject) return;
+  const total = currentProject.scenes.reduce((a,s) => a + s.duration, 0);
+  if (total < 3) { alert('Add at least one scene.'); return; }
+  ensureAudio();
+  const overlay = document.getElementById('render-overlay');
+  const bar = document.getElementById('render-bar');
+  const percent = document.getElementById('render-percent');
+  const subtitle = document.getElementById('render-subtitle');
+  const btn = document.getElementById('render-btn');
+  overlay.classList.remove('hidden'); overlay.classList.add('flex');
+  btn.disabled = true;
+  let progress = 0;
+  renderInterval = setInterval(() => {
+    progress += 2;
+    bar.style.width = progress + '%';
+    percent.textContent = progress + '%';
+    const sn = Math.min(Math.ceil(progress / (100 / currentProject.scenes.length)), currentProject.scenes.length);
+    subtitle.textContent = `Rendering scene ${sn} of ${currentProject.scenes.length}...`;
+    if (progress >= 100) {
+      clearInterval(renderInterval);
+      setTimeout(() => {
+        overlay.classList.add('hidden'); overlay.classList.remove('flex');
+        btn.disabled = false;
+        currentProject.rendered = true;
+        currentProject.title = document.getElementById('project-name').value;
+        saveProjects();
+        renderHome(); renderLibrary();
+        playSfx('success');
+        const nv = currentProject.narratorVoice || {};
+        setTimeout(() => speak('Your movie is ready!', { voiceIndex: nv.voiceIndex, pitch: nv.pitch, rate: nv.rate }), 800);
+        alert(`✨ "${currentProject.title}" is ready!\n\nTotal: ${Math.floor(total/60)}m ${total%60}s • ${currentProject.scenes.length} scenes\n\nIt now appears on the Home page.`);
+      }, 500);
+    }
+  }, 55);
+}
+
+// ============================================================
+// PLAYER (with timeline + auto transitions)
+// ============================================================
+function playVideo(id) {
+  try {
+    const p = projects.find(x => x.id === id);
+    if (!p) return alert('Project not found.');
+    if (!p.scenes || !p.scenes.length) return alert('This project has no scenes.');
+    currentProject = p;
+    playerIndex = 0;
+    playerPlaying = true;
+    ensureAudio();
+
+    const modal = document.getElementById('player-modal');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+    document.body.classList.add('modal-open');
+
+    document.getElementById('player-title').textContent = p.title;
+    document.getElementById('player-desc').textContent = p.theme + ' • ' + p.scenes.length + ' scenes';
+
+    buildTimeline();
+
+    if (p.videoUrl) setPlayerMode('video');
+    else setPlayerMode('stage');
+
+    renderPlayerScene(true);
+    startPlayerAutoplay();
+    lucide.createIcons();
+  } catch (e) {
+    console.error(e);
+    alert('Could not open player: ' + e.message);
+  }
+}
+
+function buildTimeline() {
+  const tl = document.getElementById('player-timeline');
+  const total = currentProject.scenes.reduce((a,s) => a + s.duration, 0);
+  let acc = 0;
+  tl.innerHTML = currentProject.scenes.map((s, i) => {
+    const startPct = (acc / total) * 100;
+    const widthPct = (s.duration / total) * 100;
+    acc += s.duration;
+    return `<div class="timeline-seg" id="tl-seg-${i}" style="left: ${startPct}%; width: calc(${widthPct}% - 4px);" onclick="event.stopPropagation(); jumpToScene(${i})">${i+1}</div>`;
+  }).join('') + `<div class="timeline-playhead" id="tl-playhead" style="left: 0%"></div>`;
+}
+
+function updateTimeline() {
+  if (!currentProject) return;
+  const total = currentProject.scenes.reduce((a,s) => a + s.duration, 0);
+  let acc = 0;
+  for (let i = 0; i < playerIndex; i++) acc += currentProject.scenes[i].duration;
+  const currentDur = currentProject.scenes[playerIndex]?.duration || 0;
+  const elapsedInScene = playerElapsed;
+  const overallElapsed = acc + elapsedInScene;
+  const pct = total > 0 ? Math.min((overallElapsed / total) * 100, 100) : 0;
+  const ph = document.getElementById('tl-playhead');
+  if (ph) ph.style.left = pct + '%';
+
+  // Highlight active segment
+  currentProject.scenes.forEach((s, i) => {
+    const el = document.getElementById('tl-seg-' + i);
+    if (el) el.classList.toggle('active', i === playerIndex);
+  });
+
+  // Time label
+  const m = Math.floor(overallElapsed / 60);
+  const sec = Math.floor(overallElapsed % 60).toString().padStart(2, '0');
+  const tm = Math.floor(total / 60);
+  const ts = (total % 60).toString().padStart(2, '0');
+  const timeEl = document.getElementById('player-time');
+  if (timeEl) timeEl.textContent = `${m}:${sec} / ${tm}:${ts}`;
+}
+
+function timelineClick(e) {
+  if (!currentProject) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  const total = currentProject.scenes.reduce((a,s) => a + s.duration, 0);
+  let target = pct * total;
+  let acc = 0;
+  for (let i = 0; i < currentProject.scenes.length; i++) {
+    if (target <= acc + currentProject.scenes[i].duration) {
+      jumpToScene(i);
+      return;
+    }
+    acc += currentProject.scenes[i].duration;
+  }
+  jumpToScene(currentProject.scenes.length - 1);
+}
+
+function jumpToScene(i) {
+  if (!currentProject) return;
+  playerIndex = i;
+  playerElapsed = 0;
+  renderPlayerScene(true);
+  if (playerPlaying) startPlayerAutoplay();
+}
+
+function setPlayerMode(mode) {
+  playerMode = mode;
+  const stageWrap = document.getElementById('player-stage-wrap');
+  const videoWrap = document.getElementById('player-video-wrap');
+  const stageBtn = document.getElementById('mode-btn-stage');
+  const videoBtn = document.getElementById('mode-btn-video');
+  if (mode === 'stage') {
+    stageWrap.classList.remove('hidden'); videoWrap.classList.add('hidden');
+    stageBtn.classList.add('bg-indigo-600', 'text-white'); stageBtn.classList.remove('bg-slate-800', 'text-slate-300');
+    videoBtn.classList.remove('bg-indigo-600', 'text-white'); videoBtn.classList.add('bg-slate-800', 'text-slate-300');
+    stopVideoElement();
+    renderPlayerScene(true);
+    startPlayerAutoplay();
+  } else {
+    videoWrap.classList.remove('hidden'); stageWrap.classList.add('hidden');
+    videoBtn.classList.add('bg-indigo-600', 'text-white'); videoBtn.classList.remove('bg-slate-800', 'text-slate-300');
+    stageBtn.classList.remove('bg-indigo-600', 'text-white'); stageBtn.classList.add('bg-slate-800', 'text-slate-300');
+    stopPlayerAutoplay(); stopSpeaking();
+    const video = document.getElementById('player-video');
+    const warning = document.getElementById('video-warning');
+    const url = currentProject.videoUrl || DEMO_VIDEO;
+    video.src = url; video.load(); warning.classList.add('hidden');
+    video.play().catch(e => console.warn('Autoplay blocked:', e));
+  }
+}
+
+function stopVideoElement() { const v = document.getElementById('player-video'); if (v) try { v.pause(); } catch(e){} }
+
+function renderPlayerScene(playTransition = false) {
+  if (!currentProject) return;
+  const s = currentProject.scenes[playerIndex];
+  if (!s) return;
+  const stageEl = document.getElementById('player-stage');
+  stageEl.classList.remove('scene-enter-fade','scene-enter-slide','scene-enter-zoom','scene-enter-wipe','scene-enter-sparkle');
+  if (playTransition) {
+    void stageEl.offsetWidth;
+    stageEl.classList.add('scene-enter-' + (s.transition || 'fade'));
+    // Play transition sound
+    playSfx(s.transition === 'sparkle' ? 'chime' : 'whoosh');
+  }
+  renderStage(stageEl, s, currentProject, { showNarration: true, animate: true });
+
+  // Speak narration
+  const nv = currentProject.narratorVoice || {};
+  speak(s.narration, { voiceIndex: nv.voiceIndex, pitch: nv.pitch, rate: nv.rate });
+
+  // Character lines staggered
+  (s.characters || []).forEach((sc, i) => {
+    const ch = currentProject.characters.find(x => x.id === sc.id);
+    if (ch && ch.line && i > 0) {
+      setTimeout(() => speak(ch.line, { voiceIndex: ch.voiceIndex, pitch: ch.pitch, rate: ch.rate }), 2000 + i * 1500);
+    }
+  });
+
+  document.getElementById('player-prev').disabled = playerIndex === 0;
+  document.getElementById('player-next').disabled = playerIndex === currentProject.scenes.length - 1;
+  const label = document.getElementById('player-scene-label');
+  if (label) label.textContent = `Scene ${playerIndex + 1}/${currentProject.scenes.length} — ${s.title}`;
+  updateTimeline();
+}
+
+function startPlayerAutoplay() {
+  stopPlayerAutoplay();
+  if (playerMode !== 'stage') return;
+  playerPlaying = true;
+  updatePlayerPlayIcon();
+  const durationMs = Math.max(2000, (currentProject.scenes[playerIndex]?.duration || 6) * 1000);
+  playerElapsed = 0;
+  const start = performance.now();
+  const tick = () => {
+    if (!playerPlaying) return;
+    const now = performance.now();
+    playerElapsed = (now - start) / 1000;
+    updateTimeline();
+    if (playerElapsed >= durationMs / 1000) {
+      if (playerIndex < currentProject.scenes.length - 1) {
+        playerIndex++;
+        renderPlayerScene(true);
+        startPlayerAutoplay();
+      } else {
+        playerPlaying = false;
+        updatePlayerPlayIcon();
+      }
+      return;
+    }
+    playerTimer = requestAnimationFrame(tick);
+  };
+  playerTimer = requestAnimationFrame(tick);
+}
+
+function stopPlayerAutoplay() {
+  if (playerTimer) { cancelAnimationFrame(playerTimer); playerTimer = null; }
+}
+
+function togglePlayerPlay() {
+  ensureAudio();
+  if (playerMode === 'video') {
+    const v = document.getElementById('player-video');
+    if (v.paused) v.play().catch(e => alert('Cannot play: ' + e.message));
+    else v.pause();
+    return;
+  }
+  if (playerPlaying) {
+    stopPlayerAutoplay(); stopSpeaking(); playerPlaying = false;
+  } else {
+    if (playerIndex >= currentProject.scenes.length - 1 && playerElapsed >= (currentProject.scenes[playerIndex].duration - 0.3)) {
+      playerIndex = 0;
+    }
+    renderPlayerScene(true);
+    startPlayerAutoplay();
+  }
+  updatePlayerPlayIcon();
+}
+
+function updatePlayerPlayIcon() {
+  const btn = document.getElementById('player-play');
+  if (!btn) return;
+  if (playerMode === 'video') {
+    const v = document.getElementById('player-video');
+    btn.innerHTML = (v && !v.paused) ? '<i data-lucide="pause" class="w-6 h-6"></i>' : '<i data-lucide="play" class="w-6 h-6 ml-0.5"></i>';
+  } else {
+    btn.innerHTML = playerPlaying ? '<i data-lucide="pause" class="w-6 h-6"></i>' : '<i data-lucide="play" class="w-6 h-6 ml-0.5"></i>';
+  }
+  lucide.createIcons();
+}
+
+function playerPrev() {
+  if (playerMode === 'video') return;
+  if (playerIndex > 0) { playerIndex--; playerElapsed = 0; renderPlayerScene(true); if (playerPlaying) startPlayerAutoplay(); }
+}
+function playerNext() {
+  if (playerMode === 'video') return;
+  if (playerIndex < currentProject.scenes.length - 1) { playerIndex++; playerElapsed = 0; renderPlayerScene(true); if (playerPlaying) startPlayerAutoplay(); }
+}
+
+function closePlayer() {
+  stopPlayerAutoplay(); stopSpeaking(); stopVideoElement();
+  playerPlaying = false;
+  const m = document.getElementById('player-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+  document.body.classList.remove('modal-open');
+}
+
+// ============================================================
+// PREVIEW
+// ============================================================
+function openPreview() {
+  if (!currentProject) return alert('Open a project first.');
+  previewIndex = 0;
+  const m = document.getElementById('preview-modal');
+  m.classList.remove('hidden'); m.classList.add('flex');
+  document.body.classList.add('modal-open');
+  updatePreview(true);
+  lucide.createIcons();
+}
+function closePreview() {
+  stopSpeaking();
+  const m = document.getElementById('preview-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+  document.body.classList.remove('modal-open');
+}
+function prevPreview() { if (previewIndex > 0) { previewIndex--; updatePreview(true); } }
+function nextPreview() { if (previewIndex < currentProject.scenes.length - 1) { previewIndex++; updatePreview(true); } }
+
+function updatePreview(playTransition = false) {
+  const s = currentProject.scenes[previewIndex];
+  if (!s) return;
+  const stageEl = document.getElementById('preview-stage');
+  stageEl.classList.remove('scene-enter-fade','scene-enter-slide','scene-enter-zoom','scene-enter-wipe','scene-enter-sparkle');
+  if (playTransition) {
+    void stageEl.offsetWidth;
+    stageEl.classList.add('scene-enter-' + (s.transition || 'fade'));
+    playSfx('whoosh');
+  }
+  renderStage(stageEl, s, currentProject, { showNarration: true, animate: true });
+  document.getElementById('preview-counter').textContent = `Scene ${previewIndex+1} of ${currentProject.scenes.length}`;
+  document.getElementById('preview-title').textContent = s.title;
+  document.getElementById('preview-narration').textContent = '"' + s.narration + '"';
+  document.getElementById('preview-prev').disabled = previewIndex === 0;
+  document.getElementById('preview-next').disabled = previewIndex === currentProject.scenes.length - 1;
+}
+
+function speakCurrentPreview() {
+  const s = currentProject.scenes[previewIndex];
+  if (!s) return;
+  ensureAudio();
+  const nv = currentProject.narratorVoice || {};
+  speak(s.narration, { voiceIndex: nv.voiceIndex, pitch: nv.pitch, rate: nv.rate });
+}
+
+function playPreviewScene() {
+  const s = currentProject.scenes[previewIndex];
+  if (!s) return;
+  ensureAudio();
+  const stageEl = document.getElementById('preview-stage');
+  stageEl.classList.remove('scene-enter-fade','scene-enter-slide','scene-enter-zoom','scene-enter-wipe','scene-enter-sparkle');
+  void stageEl.offsetWidth;
+  stageEl.classList.add('scene-enter-' + (s.transition || 'fade'));
+  renderStage(stageEl, s, currentProject, { showNarration: true, animate: true });
+  playSfx('chime');
+  const nv = currentProject.narratorVoice || {};
+  speak(s.narration, { voiceIndex: nv.voiceIndex, pitch: nv.pitch, rate: nv.rate });
+}
+
+// ESC
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeCreator(); closeCharBuilder(); closePreview(); closePlayer(); }
+});
+window.addEventListener('beforeunload', () => { stopSpeaking(); });
+</script>
+
+</body>
+</html>
